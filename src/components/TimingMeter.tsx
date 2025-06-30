@@ -14,7 +14,7 @@ const TimingMeter = forwardRef<TimingMeterRef, TimingMeterProps>(
   ({ speed = 2, sweetSpot = { start: 40, end: 60 } }, ref) => {
     const [position, setPosition] = useState(0);
     const direction = useRef(1);
-    const animationFrameId = useRef<number>();
+    const animationFrameId = useRef<number | null>(null);
 
     useImperativeHandle(ref, () => ({
       isSuccess: () => {

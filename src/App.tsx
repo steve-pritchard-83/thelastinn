@@ -1,87 +1,137 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import launchGame from './phaser/game';
 import { useGameStore } from './stores/gameStore';
-import AsciiArt from './components/AsciiArt';
-import * as art from './data/asciiArt';
+import Typewriter from './components/Typewriter';
+import HealthBar from './components/HealthBar';
+import StartScreen from './components/StartScreen';
+import TimingMeter from './components/TimingMeter';
+import type { TimingMeterRef } from './components/TimingMeter';
 
 function App() {
+  const [isGameStarted, setIsGameStarted] = useState(false);
   const player = useGameStore((state) => state.player);
   const gamePhase = useGameStore((state) => state.gamePhase);
-  const log = useGameStore((state) => state.log);
+  const gameLog = useGameStore((state) => state.log);
   const currentEnemy = useGameStore((state) => state.currentEnemy);
+  const lingeringEchoes = useGameStore((state) => state.lingeringEchoes);
+  const healthPotions = useGameStore((state) => state.healthPotions);
+  const permanentUpgrades = useGameStore((state) => state.permanentUpgrades);
   const actions = useGameStore((state) => state.actions);
+  const [typingIndex, setTypingIndex] = useState(0);
+  const timingMeterRef = useRef<TimingMeterRef>(null);
+
+  const hpUpgradeCost = 10;
 
   useEffect(() => {
-    // We want the phaser canvas to be there, but not necessarily visible
+    // When the log from the store changes, reset the typing index to start from the beginning.
+    setTypingIndex(0);
+  }, [gameLog]);
+
+  useEffect(() => {
+    if (!isGameStarted) return;
     const game = launchGame('phaser-game');
     return () => {
       game.destroy(true);
-    }
-  }, []); // Run only once
+    };
+  }, [isGameStarted]);
 
-  const getCurrentArt = () => {
-    if (gamePhase === 'combat') {
-      if (currentEnemy?.name === 'Goblin') return art.goblin;
-      if (currentEnemy?.name === 'Troll') return art.troll;
-    }
-    switch (gamePhase) {
-      case 'start':
-        return art.inn;
-      case 'dungeon-intro':
-      case 'dungeon':
-        return art.dungeon;
-      case 'trap':
-        return art.trap;
-      case 'win':
-        return art.win;
-      case 'lose':
-        return art.lose;
-      default:
-        return art.dungeon;
-    }
+  const handleGameStart = () => {
+    // This user interaction unlocks the AudioContext.
+    // The actual audio playback will be triggered inside the Phaser scene.
+    setIsGameStarted(true);
   };
 
-  const renderLog = () => (
-    <div id="log-area">
-      {log.map((message, index) => (
-        <p key={index}>{message}</p>
-      ))}
-    </div>
-  );
+  const handleTypingComplete = useCallback(() => {
+    setTypingIndex(prev => prev + 1);
+  }, []);
+
+  const handleAttack = () => {
+    const isSuccess = timingMeterRef.current?.isSuccess() ?? false;
+    actions.attack(isSuccess);
+  };
+
+  const fullyTypedLog = gameLog.slice(0, typingIndex);
+  const lineBeingTyped = gameLog.length > typingIndex ? gameLog[typingIndex] : null;
+
+  if (!isGameStarted) {
+    return <StartScreen onStart={handleGameStart} />;
+  }
 
   return (
     <div id="game-container">
-      <div id="phaser-game" style={{ display: gamePhase !== 'start' ? 'block' : 'none' }}></div>
       <div id="ui-container">
         <div id="ui-header">
-          <div id="player-stats">
-            <p>Player HP: {player.hp} / {player.maxHp}</p>
-          </div>
+          <HealthBar label="Player HP" currentHp={player.hp} maxHp={player.maxHp} />
+          <p>Potions: {healthPotions}</p>
         </div>
 
         <div id="main-content">
-          <AsciiArt art={getCurrentArt()} />
+          <div id="phaser-game"></div>
         </div>
 
         <div id="ui-footer">
           <div id="text-area">
-            {gamePhase === 'start' && <p>You wake up with a splitting headache in a dimly lit room... A dream, a nightmare of a shrieking beast, still fresh in your mind.</p>}
-            {log.length > 0 && renderLog()}
+            {gamePhase === 'start' ? (
+              <div className="inn-shop">
+                <h3>The Last Inn</h3>
+                <p>A single, flickering candle illuminates the quiet common room. Outside, the monstrous forest groans, but in here, you are safe. For now.</p>
+                <p>The innkeeper speaks of "Lingering Echoes," remnants of those lost to the woods, which can reinforce your own reality.</p>
+                <hr />
+                <h4>The Innkeeper's Ledger</h4>
+                <p>Your lingering echoes: {lingeringEchoes}</p>
+                <p>Current bonus HP: {permanentUpgrades.bonusHp}</p>
+                <button
+                  onClick={() => actions.purchaseHpUpgrade(hpUpgradeCost)}
+                  disabled={lingeringEchoes < hpUpgradeCost}
+                  title={lingeringEchoes < hpUpgradeCost ? "Not enough echoes" : `Cost: ${hpUpgradeCost} echoes`}
+                >
+                  Reinforce Vitality (+1 Max HP)
+                </button>
+              </div>
+            ) : (
+              <>
+                <div id="log-area">
+                  {fullyTypedLog.map((message, index) => (
+                    <p key={index} className="typewriter-text">{message}</p>
+                  ))}
+                  {lineBeingTyped && (
+                    <Typewriter
+                      text={lineBeingTyped}
+                      onTypingComplete={handleTypingComplete}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+
             {currentEnemy && (
               <div id="enemy-stats">
-                <p>{currentEnemy.name}</p>
-                <p>HP: {currentEnemy.hp} / {currentEnemy.maxHp}</p>
+                <HealthBar label={currentEnemy.name} currentHp={currentEnemy.hp} maxHp={currentEnemy.maxHp} />
               </div>
             )}
           </div>
+          {gamePhase === 'combat' && <TimingMeter ref={timingMeterRef} speed={1} />}
           <div id="actions-area">
             {gamePhase === 'start' && <button onClick={actions.leaveInn}>Leave the inn</button>}
-            {gamePhase === 'dungeon-intro' && <button onClick={actions.prepareToMove}>Dust yourself off</button>}
+            {gamePhase === 'dungeon-intro' && <button onClick={actions.prepareToMove}>Continue through the woods</button>}
+            {gamePhase === 'trapdoor' && <button onClick={actions.fallThroughTrapdoor}>Investigate the cellar door</button>}
             {gamePhase === 'dungeon' && <button onClick={actions.moveForward}>Move Forward</button>}
             {gamePhase === 'trap' && <button onClick={() => actions.setGamePhase('dungeon')}>Continue</button>}
-            {gamePhase === 'combat' && <button onClick={actions.attack}>Attack {currentEnemy?.name}</button>}
-            {(gamePhase === 'win' || gamePhase === 'lose') && <button onClick={actions.resetGame}>Try Again</button>}
+            {gamePhase === 'combat' && <button onClick={handleAttack}>Attack</button>}
+            {gamePhase === 'goblin-killed' && <button onClick={actions.continueAfterCombat}>Step over the corpse</button>}
+
+            {(gamePhase === 'dungeon' || gamePhase === 'combat' || gamePhase === 'trap') && (
+              <button
+                onClick={actions.useHealthPotion}
+                disabled={healthPotions <= 0 || player.hp === player.maxHp}
+                title={healthPotions <= 0 ? "No potions left" : player.hp === player.maxHp ? "Health is full" : "Use a health potion"}
+              >
+                Use Potion
+              </button>
+            )}
+
+            {(gamePhase === 'win' || gamePhase === 'lose') && <button onClick={actions.resetGame}>Return to the Inn</button>}
           </div>
         </div>
       </div>

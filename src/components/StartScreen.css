@@ -1,0 +1,42 @@
+.start-screen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--background-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  color: var(--text-light);
+  font-family: var(--font-main);
+}
+
+.start-screen-content {
+  text-align: center;
+}
+
+.start-screen-content h1 {
+  font-size: 2.5rem;
+  color: var(--accent-color);
+  margin-bottom: 2rem;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.start-screen-content button {
+  font-family: var(--font-main);
+  font-size: 1.5rem;
+  color: var(--text-light);
+  background-color: var(--button-bg);
+  border: 2px solid var(--border-color);
+  padding: 1rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border-radius: 5px;
+}
+
+.start-screen-content button:hover {
+  background-color: var(--button-hover-bg);
+  color: var(--accent-color);
+} 

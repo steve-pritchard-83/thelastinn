@@ -1,0 +1,36 @@
+.timing-meter-container {
+  padding: 1rem 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timing-meter-bar {
+  width: 90%;
+  height: 10px;
+  background-color: var(--background-dark);
+  border: 2px solid var(--border-color);
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.timing-meter-sweet-spot {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background-color: rgba(232, 77, 77, 0.4);
+  z-index: 1;
+}
+
+.timing-meter-slider {
+  position: absolute;
+  top: -5px;
+  width: 4px;
+  height: 20px;
+  background-color: var(--accent-color);
+  border-radius: 2px;
+  z-index: 2;
+  transform: translateX(-2px); /* Center the slider */
+} 

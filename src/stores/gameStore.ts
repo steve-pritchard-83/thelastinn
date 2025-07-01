@@ -64,7 +64,7 @@ export const useGameStore = create<GameState>()(
     actions: {
       leaveInn: () => {
         AudioManager.getInstance().playSfx('sfxDoor');
-        AudioManager.getInstance().playSfx('forest.mp3');
+        AudioManager.getInstance().playMusic('forest.mp3');
         const newPlayer = { ...warrior };
         
         // Start transition immediately and queue the state change
@@ -81,6 +81,7 @@ export const useGameStore = create<GameState>()(
         });
       },
       fallThroughTrapdoor: () => {
+        AudioManager.getInstance().playMusic('musicIntroLoop');
         set({ 
           isTransitioning: true,
           pendingStateChange: {
@@ -133,6 +134,7 @@ export const useGameStore = create<GameState>()(
                 }
               });
             } else {
+              AudioManager.getInstance().playMusic('musicIntroLoop');
               set({ 
                 isTransitioning: true,
                 pendingStateChange: {
@@ -144,6 +146,7 @@ export const useGameStore = create<GameState>()(
             }
             break;
           case 'potion':
+            AudioManager.getInstance().playMusic('musicIntroLoop');
             set({ 
               isTransitioning: true,
               pendingStateChange: {
@@ -154,6 +157,7 @@ export const useGameStore = create<GameState>()(
             });
             break;
           case 'empty':
+            AudioManager.getInstance().playMusic('musicIntroLoop');
             set({ 
               isTransitioning: true,
               pendingStateChange: {
@@ -163,6 +167,7 @@ export const useGameStore = create<GameState>()(
             });
             break;
           case 'empty-hallway':
+            AudioManager.getInstance().playMusic('musicIntroLoop');
             set({ 
               isTransitioning: true,
               pendingStateChange: {
@@ -220,6 +225,7 @@ export const useGameStore = create<GameState>()(
 
           if (currentEnemy.name === 'Goblin') {
             AudioManager.getInstance().playSfx('goblindeath');
+            AudioManager.getInstance().playMusic('musicIntroLoop');
             const newKills = get().goblinsKilled + 1;
             newLog.push("The Goblin collapses in a pool of its own foul blood.");
             newLog.push("You step over the corpse and steel yourself for what lies ahead.");
@@ -309,7 +315,7 @@ export const useGameStore = create<GameState>()(
         set({ gamePhase: phase });
       },
       resetGame: () => {
-        AudioManager.getInstance().playMusic('musicIntroLoop');
+        AudioManager.getInstance().playMusic('fireplace');
         set({ 
           isTransitioning: true,
           transitionPhase: 'fade-out',

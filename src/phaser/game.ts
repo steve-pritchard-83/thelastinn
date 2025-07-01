@@ -49,6 +49,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('musicCombatLoop', 'assets/audio/music/combatloop.mp3');
     this.load.audio('musicDeathLoop', 'assets/audio/music/deathloop.mp3');
     this.load.audio('victorymusic', 'assets/audio/music/victorymusic.mp3');
+    this.load.audio('fireplace', 'assets/audio/sfx/fireplace.mp3');
     this.load.audio('sfxDoor', 'assets/audio/sfx/door.mp3');
     this.load.audio('forest.mp3', 'assets/audio/sfx/forest.mp3');
     this.load.audio('sfxHit', 'assets/audio/sfx/hit.mp3');
@@ -84,7 +85,7 @@ class GameScene extends Phaser.Scene {
         repeat: -1,
     });
     
-    this.audioManager.playMusic('musicIntroLoop');
+    this.audioManager.playMusic('fireplace');
     
     useGameStore.subscribe(
       (state, prevState) => this.handleStateChange(state, prevState)

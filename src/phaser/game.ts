@@ -121,7 +121,7 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  transitionToScene(state: GameState) {
+  transitionToScene(_state: GameState) {
     console.log('Starting transition...');
     this.audioManager.playSfx('footsteps');
     

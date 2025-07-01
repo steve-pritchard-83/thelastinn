@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import './App.css';
 import launchGame from './phaser/game';
 import { useGameStore } from './stores/gameStore';

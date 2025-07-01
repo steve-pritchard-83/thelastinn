@@ -9,8 +9,8 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
   return (
     <div className="start-screen-overlay">
       <div className="start-screen-content">
-        <h1>The Last Inn</h1>
-        <button onClick={onStart}>Click to Start</button>
+        <img src="assets/images/logo.png" alt="The Last Inn Logo" className="start-screen-logo" />
+        <button onClick={onStart}>Wake Up!</button>
       </div>
     </div>
   );

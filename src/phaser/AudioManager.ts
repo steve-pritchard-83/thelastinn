@@ -5,6 +5,7 @@ class AudioManager {
     private scene: Phaser.Scene | null = null;
     private currentMusic: Phaser.Sound.BaseSound | null = null;
     private sceneSound: Phaser.Sound.BaseSoundManager | null = null;
+    private isMuted: boolean = false;
 
     // private constructor to enforce singleton pattern
     private constructor() { }
@@ -24,8 +25,24 @@ class AudioManager {
         this.sceneSound = soundManager;
     }
 
+    public setMuted(muted: boolean): void {
+        this.isMuted = muted;
+        if (this.sceneSound) {
+            this.sceneSound.mute = muted;
+        }
+    }
+
+    public getMuted(): boolean {
+        return this.isMuted;
+    }
+
+    public toggleMute(): boolean {
+        this.setMuted(!this.isMuted);
+        return this.isMuted;
+    }
+
     public playSfx(key: string) {
-        if (!this.sceneSound) return;
+        if (!this.sceneSound || this.isMuted) return;
         this.sceneSound.play(key);
     }
 
@@ -35,17 +52,19 @@ class AudioManager {
             this.currentMusic.stop();
         }
         this.currentMusic = this.sceneSound.add(key, { loop });
-        this.currentMusic.play();
+        if (!this.isMuted) {
+            this.currentMusic.play();
+        }
     }
 
     public playNarrationThenMusic(narrationKey: string, musicKey: string, loop: boolean = true): void {
-        if (this.scene) {
+        if (this.scene && !this.isMuted) {
             const narrationSound = this.scene.sound.add(narrationKey);
             narrationSound.on('complete', () => {
                 this.playMusic(musicKey, loop);
             });
             narrationSound.play();
-        } else {
+        } else if (!this.isMuted) {
             console.warn('AudioManager: Scene not set. Cannot play narration.');
         }
     }

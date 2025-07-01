@@ -31,11 +31,19 @@ body, html {
   margin: 0 auto;
   border-left: 2px solid var(--border-color);
   border-right: 2px solid var(--border-color);
+  opacity: 1;
+  transition: opacity 1.5s ease-in-out;
+}
+
+#game-container.transitioning {
+  opacity: 0 !important;
 }
 
 #phaser-game {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 10;
 }
 
 #ui-container {
@@ -44,6 +52,9 @@ body, html {
   height: 100%;
   padding: 1rem;
   background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.9));
+  transition: opacity 0.5s ease-in-out;
+  position: relative;
+  z-index: 10;
 }
 
 /* Header */
@@ -57,13 +68,55 @@ body, html {
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
-/* Main Content Area */
-#main-content {
-  flex-grow: 1;
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.potion-counter {
+  display: flex;
+  align-items: center;
+}
+
+.mute-button {
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  color: var(--text-light);
+  background-color: var(--button-bg);
+  border: 2px solid var(--border-color);
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 150px; /* Ensure space for phaser art */
+  min-width: 40px;
+  height: 40px;
+}
+
+.mute-button:hover:not(:disabled) {
+  background-color: var(--button-hover-bg);
+  color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+.mute-button:disabled {
+  background-color: #2a2a2a;
+  color: #555;
+  cursor: not-allowed;
+  border-color: #333;
+}
+
+/* Main Content Area */
+#main-content {
+  flex-grow: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0; /* Let it shrink */
 }
 
 /* Footer */
@@ -82,8 +135,8 @@ body, html {
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 1;
-  min-height: 220px;
-  height: 220px;
+  flex-grow: 1; /* Allow growing */
+  min-height: 0; /* Allow shrinking */
 }
 
 #log-area {
@@ -93,6 +146,7 @@ body, html {
 }
 
 #log-area .typewriter-text {
+  font-size: 0.8rem;
   margin-bottom: 0.5em;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -143,7 +197,9 @@ body, html {
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   border-radius: 5px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #actions-area button:hover:not(:disabled) {
@@ -163,3 +219,18 @@ body, html {
 #actions-area > button:only-child {
     grid-column: 1 / -1;
 }
+
+/* Icon Styles */
+.icon {
+  font-size: 1.5em; /* Make icons big like capitalized text */
+  margin-right: 0.3em;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.5); /* 3D pixel effect */
+}
+
+.icon-potion { 
+  /* Hack to recolor a multi-color emoji. */
+  filter: grayscale(1) brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5);
+}
+.icon-move { color: #cccccc; } /* Light Grey */
+.icon-attack { color: #E84D4D; } /* Matches accent color */
+.icon-home { color: #FFD700; } /* Gold */

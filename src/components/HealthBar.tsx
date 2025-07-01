@@ -13,7 +13,7 @@ const HealthBar: React.FC<HealthBarProps> = ({ currentHp, maxHp, label }) => {
   return (
     <div className="health-bar-container">
       <div className="health-bar-label">
-        <span>{label}</span>
+        <span className="health-bar-label-text"><span className="icon icon-heart">♥</span><span>{label}</span></span>
         <span>{currentHp} / {maxHp}</span>
       </div>
       <div className="health-bar-background">

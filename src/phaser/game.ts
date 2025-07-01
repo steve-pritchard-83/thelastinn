@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore, type GameState } from '../stores/gameStore';
 import AudioManager from './AudioManager';
 
 // A mapping from game state to image asset key
 const sceneImageKeys = {
-  'start': 'dungeonintro', // Assuming you have an image for the inn
+  'start': 'dungeonintro',
   'dungeon-intro': 'dungeonintro',
   'trapdoor': 'trapdoor',
   'dungeon': 'dungeon',
+  'empty-room': 'emptyroom',
   'trap': 'trap',
   'win': 'win',
   'lose': 'loss',
-  'combat': 'dungeon', // Background for combat
-  'prepareToMove': 'dungeonintro', // Or whatever is appropriate
+  'combat': 'dungeon',
+  'prepareToMove': 'dungeonintro',
   'goblin-killed': 'deadgoblin',
 };
 
@@ -41,24 +42,36 @@ class GameScene extends Phaser.Scene {
     this.load.image('goblin', 'assets/images/goblin.png');
     this.load.image('troll', 'assets/images/troll.png');
     this.load.image('deadgoblin', 'assets/images/deadgoblin.png');
+    this.load.image('emptyroom', 'assets/images/emptyroom.png');
     
     // Preload audio
-    this.load.audio('narrationIntro', 'assets/audio/narration/intronarration.mp3');
     this.load.audio('musicIntroLoop', 'assets/audio/music/introloop.mp3');
     this.load.audio('musicCombatLoop', 'assets/audio/music/combatloop.mp3');
     this.load.audio('musicDeathLoop', 'assets/audio/music/deathloop.mp3');
+    this.load.audio('victorymusic', 'assets/audio/music/victorymusic.mp3');
     this.load.audio('sfxDoor', 'assets/audio/sfx/door.mp3');
+    this.load.audio('forest.mp3', 'assets/audio/sfx/forest.mp3');
     this.load.audio('sfxHit', 'assets/audio/sfx/hit.mp3');
     this.load.audio('sfxMiss', 'assets/audio/sfx/miss.mp3');
     this.load.audio('sfxTrap', 'assets/audio/sfx/trap.mp3');
     this.load.audio('sfxPotion', 'assets/audio/sfx/potion.mp3');
     this.load.audio('sfxUpgrade', 'assets/audio/sfx/upgrade.mp3');
+    this.load.audio('goblinshriek', 'assets/audio/sfx/goblinshriek.mp3');
+    this.load.audio('goblindeath', 'assets/audio/sfx/goblindeath.mp3');
+    this.load.audio('trollroar', 'assets/audio/sfx/trollroar.mp3');
+    this.load.audio('trolldeath', 'assets/audio/sfx/trolldeath.mp3');
+    this.load.audio('footsteps', 'assets/audio/sfx/footsteps.mp3');
   }
 
   create() {
     this.audioManager = AudioManager.getInstance();
     this.audioManager.init(this.game.sound);
-    this.lights.enable().setAmbientColor(0x1a1a1a);
+    
+    // Initialize mute state from game store
+    const gameState = useGameStore.getState();
+    this.audioManager.setMuted(gameState.isMuted);
+    
+    this.lights.enable().setAmbientColor(0x686868);
 
     this.light = this.lights.addLight(this.cameras.main.centerX, this.cameras.main.centerY, 600).setColor(0xffc87d).setIntensity(2.5);
 
@@ -71,19 +84,14 @@ class GameScene extends Phaser.Scene {
         repeat: -1,
     });
     
-    // Set initial music & narration
     this.audioManager.playMusic('musicIntroLoop');
-    this.audioManager.playSfx('narrationIntro');
     
-    // Subscribe to Zustand state changes
     useGameStore.subscribe(
-      (state, prevState) => {
-        this.handleStateChange(state, prevState);
-      }
+      (state, prevState) => this.handleStateChange(state, prevState)
     );
     
-    // Initial scene setup
-    this.handleStateChange(useGameStore.getState(), useGameStore.getState());
+    // Set initial scene without transition
+    this.updateScene(useGameStore.getState());
 
     this.scale.on('resize', this.onResize, this);
   }
@@ -95,48 +103,67 @@ class GameScene extends Phaser.Scene {
     if (this.currentEnemyImage) this.scaleImageToFit(this.currentEnemyImage);
   }
   
-  handleStateChange(state: any, prevState: any) {
-    // Update background scene
-    const newSceneKey = sceneImageKeys[state.gamePhase as keyof typeof sceneImageKeys];
-    if (newSceneKey && (!this.currentSceneImage || this.currentSceneImage.texture.key !== newSceneKey)) {
-        if(this.currentSceneImage) this.currentSceneImage.destroy();
-        this.currentSceneImage = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, newSceneKey);
-        this.currentSceneImage.setPipeline('Light2D');
-        this.scaleImageToFit(this.currentSceneImage);
-    }
-    
-    // Update enemy visibility and texture
-    if (state.currentEnemy) {
-        const enemyKey = enemyImageKeys[state.currentEnemy.name as keyof typeof enemyImageKeys];
-        if (enemyKey) {
-            if (!this.currentEnemyImage || this.currentEnemyImage.texture.key !== enemyKey) {
-                if (this.currentEnemyImage) this.currentEnemyImage.destroy();
-                this.currentEnemyImage = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, enemyKey);
-                this.currentEnemyImage.setPipeline('Light2D');
-                this.scaleImageToFit(this.currentEnemyImage);
-            }
-            this.currentEnemyImage.setVisible(true);
-            // Hide scene image if enemy is present
-            if (this.currentSceneImage) this.currentSceneImage.setVisible(false);
-        }
-    } else {
-        if (this.currentEnemyImage) this.currentEnemyImage.setVisible(false);
-        // Show scene image if no enemy
-        if (this.currentSceneImage) this.currentSceneImage.setVisible(true);
+  handleStateChange(state: GameState, prevState: GameState) {
+    // Start transition if we just started transitioning and have a pending state change
+    if (state.isTransitioning && !prevState.isTransitioning && state.pendingStateChange) {
+      this.transitionToScene(state);
+      return;
     }
 
-    // Handle screen shake on trap
+    // Handle non-visual changes like screen shake
     if (state.gamePhase === 'trap' && prevState.gamePhase !== 'trap') {
         this.cameras.main.shake(500, 0.02);
     }
 
-    // Handle screen shake on combat hits/misses
     if (state.attackTurn > prevState.attackTurn) {
-      if (state.lastAttackResult === 'hit') {
-        this.cameras.main.shake(100, 0.015); // A sharp jolt for a hit
-      } else if (state.lastAttackResult === 'miss') {
-        this.cameras.main.shake(100, 0.005); // A softer vibration for a miss
-      }
+      if (state.lastAttackResult === 'hit') this.cameras.main.shake(100, 0.015);
+      else if (state.lastAttackResult === 'miss') this.cameras.main.shake(100, 0.005);
+    }
+  }
+
+  transitionToScene(state: GameState) {
+    console.log('Starting transition...');
+    this.audioManager.playSfx('footsteps');
+    
+    // Don't use Phaser camera fades, rely on CSS transitions
+    // Just update the scene after the CSS fade-out would complete
+    this.time.delayedCall(1500, () => {
+      console.log('Applying state change...');
+      // Apply the pending state change and update the scene
+      useGameStore.getState().actions.applyPendingStateChange();
+      this.updateScene(useGameStore.getState());
+      
+      // End transition after CSS fade-in would complete
+      this.time.delayedCall(1500, () => {
+        console.log('Ending transition...');
+        useGameStore.getState().actions.endTransition();
+      });
+    });
+  }
+
+  updateScene(state: GameState) {
+    // This function now just swaps the images, to be called during the transition
+    const sceneKey = sceneImageKeys[state.gamePhase as keyof typeof sceneImageKeys];
+    if (sceneKey) {
+        if(this.currentSceneImage) this.currentSceneImage.destroy();
+        this.currentSceneImage = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, sceneKey);
+        this.currentSceneImage.setPipeline('Light2D');
+        this.scaleImageToFit(this.currentSceneImage);
+    }
+    
+    if (state.currentEnemy) {
+        const enemyKey = enemyImageKeys[state.currentEnemy.name as keyof typeof enemyImageKeys];
+        if (enemyKey) {
+            if (this.currentEnemyImage) this.currentEnemyImage.destroy();
+            this.currentEnemyImage = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, enemyKey);
+            this.currentEnemyImage.setPipeline('Light2D');
+            this.scaleImageToFit(this.currentEnemyImage);
+            this.currentEnemyImage.setVisible(true);
+            if (this.currentSceneImage) this.currentSceneImage.setVisible(false);
+        }
+    } else {
+        if (this.currentEnemyImage) this.currentEnemyImage.setVisible(false);
+        if (this.currentSceneImage) this.currentSceneImage.setVisible(true);
     }
   }
 
@@ -167,4 +194,4 @@ const launchGame = (containerId: string) => {
   return new Phaser.Game(config);
 };
 
-export default launchGame; 
+export default launchGame;
